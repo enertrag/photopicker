@@ -1,6 +1,6 @@
 {
   "name": "enertrag-photopicker",
-  "version": "0.0.9",
+  "version": "0.0.12",
   "description": "Multi-select photo picker",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
