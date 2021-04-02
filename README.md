@@ -2,6 +2,12 @@
 
 tbd; description needed
 
+## Installation
+
+```bash
+npm install enertrag-photopicker
+```
+
 ## iOS Notes
 
 ## Android Notes
