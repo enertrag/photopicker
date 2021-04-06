@@ -1,5 +1,5 @@
 import { WebPlugin } from '@capacitor/core';
-import { PhotopickerPlugin, PhotopickerResponse } from './definitions';
+import { PhotopickerPlugin, PhotopickerResponse, PhotopickerOptions } from './definitions';
 
 
 export class PhotopickerWeb extends WebPlugin implements PhotopickerPlugin {
@@ -10,7 +10,7 @@ export class PhotopickerWeb extends WebPlugin implements PhotopickerPlugin {
     });
   }
 
-  async getPhotos(): Promise<PhotopickerResponse> {
+  async getPhotos(options: PhotopickerOptions): Promise<PhotopickerResponse> {
     console.log('GETPHOTOS');
     return Promise.reject('not implemented');
   }

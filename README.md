@@ -8,7 +8,13 @@ tbd; description needed
 npm install enertrag-photopicker
 ```
 
+_(Of course, the usual Capacitor procedure <code>npx cap sync</code> must be executed afterwards.)_
+
 ## iOS Notes
+
+**_Important:_** **this plugin requires iOS 14 or later.**
+
+Selected images are persisted in the users documents folder. As mentioned you should move it to the final destination.
 
 ## Android Notes
 
@@ -55,12 +61,19 @@ async addPhotos() {
 }
 ```
 
+Alternatively, if the code completion does not work, the import can be formulated as follows:
+
+```typescript
+import { EAGPhotopicker } from 'enertrag-photopicker';
+const Photopicker = new EAGPhotopicker();
+```
+
 ## API
 
 ### getPhotos()
 
 ```typescript
-getPhotos() => Promise<PhotopickerResponse>
+getPhotos(options: PhotopickerOptions) => Promise<PhotopickerResponse>
 ```
 
 Prompt the user to pick one or more photos from an album.
@@ -71,6 +84,13 @@ The method call may fail if the user denies the permission request.
 
 ## Interfaces
 
+### PhotopickerOptions
+
+| Prop          | Type                 | Description |
+| ------------- | -------------------- | ----------- |
+| **`maxSize`** | <code>number?</code> |             |
+| **`quality`** | <code>number</code>  |             |
+
 ### PhotopickerResponse
 
 | Prop           | Type                  | Description |
@@ -80,8 +100,10 @@ The method call may fail if the user denies the permission request.
 
 ## Implementation
 
-The exciting parts of the source code for Android can be found [here](https://github.com/enertrag/photopicker/blob/main/android/src/main/java/com/enertrag/plugins/photopicker/Photopicker.java). The ones for iOS are here.
+The exciting parts of the source code for Android can be found [here](https://github.com/enertrag/photopicker/blob/main/android/src/main/java/com/enertrag/plugins/photopicker/Photopicker.java). The ones for iOS are [here](https://github.com/enertrag/photopicker/blob/main/ios/Plugin/Plugin.swift).
 
 ## License
 
-MIT
+[MIT](https://github.com/enertrag/photopicker/blob/main/LICENSE)
+
+Copyright © 2021 Philipp Anné

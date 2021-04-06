@@ -137,7 +137,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                     return
                 }
                 
-                guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                guard let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
                     
                     CAPLog.print("⚡️ ", self.pluginId!, "-", "doc dir failed")
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
@@ -145,7 +145,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                     return
                 }
 
-                let fileURL = documentsDirectory.appendingPathComponent("py_temp_" + UUID().uuidString)
+                let fileURL = cachesDirectory.appendingPathComponent("py_temp_" + UUID().uuidString + ".jpeg")
                 
                 let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
                 

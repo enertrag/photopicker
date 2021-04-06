@@ -9,6 +9,11 @@ export interface PhotopickerResponse {
   urls: string[];
 }
 
+export interface PhotopickerOptions {
+  maxSize?: number;
+  quality: number;
+}
+
 export interface PhotopickerPlugin {
 
   /**
@@ -16,5 +21,5 @@ export interface PhotopickerPlugin {
    * 
    * @since 1.0
    */
-  getPhotos(): Promise<PhotopickerResponse>;
+  getPhotos(options: PhotopickerOptions): Promise<PhotopickerResponse>;
 }

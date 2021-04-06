@@ -21,6 +21,8 @@ package com.enertrag.plugins.photopicker;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.util.Log;
 
@@ -31,6 +33,16 @@ import com.getcapacitor.NativePlugin;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.plugin.camera.ExifWrapper;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.UUID;
 
 import static android.app.Activity.RESULT_CANCELED;
 import static android.app.Activity.RESULT_OK;
@@ -38,16 +50,17 @@ import static android.app.Activity.RESULT_OK;
 @NativePlugin(
         requestCodes = {
                 Photopicker.REQUEST_IMAGE_PICK,
-                Photopicker.REQUEST_READ_PERMISSION,
+                Photopicker.REQUEST_READ_WRITE_PERMISSION,
         },
         permissions = {
                 Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
         }
 )
 public class Photopicker extends Plugin {
 
     protected static final int REQUEST_IMAGE_PICK = 1603;
-    protected static final int REQUEST_READ_PERMISSION = 1604;
+    protected static final int REQUEST_READ_WRITE_PERMISSION = 1604;
 
     private static final String LOG_TAG = "ENERTRAG/Photopicker";
 
@@ -75,9 +88,12 @@ public class Photopicker extends Plugin {
             // Fix: we must not use pluginRequestAllPermissions() here, because it
             //      won't call back the handleRequestPermissionResult() method.
             //      Maybe I misunderstood the documentation.
-            pluginRequestPermission(Manifest.permission.READ_EXTERNAL_STORAGE, REQUEST_READ_PERMISSION);
-        }
+            pluginRequestPermissions(new String[] {
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            }, REQUEST_READ_WRITE_PERMISSION);
 
+        }
     }
 
     /**
@@ -120,7 +136,7 @@ public class Photopicker extends Plugin {
             return;
         }
 
-        if(requestCode == REQUEST_READ_PERMISSION) {
+        if(requestCode == REQUEST_READ_WRITE_PERMISSION) {
 
             Log.d(LOG_TAG, "permission request was answered");
 
@@ -176,15 +192,18 @@ public class Photopicker extends Plugin {
                     int count = data.getClipData().getItemCount();
                     for(int i = 0; i < count; i++) {
                         Uri imageUri = data.getClipData().getItemAt(i).getUri();
-                        urls.put(FileUtils.getFileUrlForUri(getContext(), imageUri));
-                    }
+                        imageUri = getTempFile(imageUri);
+
+                        urls.put(imageUri != null ? FileUtils.getFileUrlForUri(getContext(), imageUri) : null);                    }
 
                 } else if(data.getData() != null) {
 
                     Log.d(LOG_TAG, "user selected single photo");
 
                     Uri imageUri = data.getData();
-                    urls.put(FileUtils.getFileUrlForUri(getContext(), imageUri));
+                    imageUri = getTempFile(imageUri);
+
+                    urls.put(imageUri != null ? FileUtils.getFileUrlForUri(getContext(), imageUri) : null);
                 }
 
                 result.put("selected", true);
@@ -200,4 +219,81 @@ public class Photopicker extends Plugin {
             }
         }
     }
+
+    private Uri getTempFile(Uri uri) {
+
+        Log.v(LOG_TAG, "entering getTempFile()");
+
+        InputStream imageStream = null;
+
+        try {
+            imageStream = getContext().getContentResolver().openInputStream(uri);
+            Bitmap bitmap = BitmapFactory.decodeStream(imageStream);
+
+            if (bitmap == null) {
+                return null;
+            }
+
+            // Compress the final image and prepare for output to client
+            ByteArrayOutputStream bitmapOutputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bitmapOutputStream);
+
+            return getTempImage(bitmap, bitmapOutputStream);
+
+        } catch (FileNotFoundException e) {
+            Log.e(LOG_TAG, "file not found", e);
+        } finally {
+            if (imageStream != null) {
+                try {
+                    imageStream.close();
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "imageStream could not be closed", e);
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+    private Uri getTempImage(Bitmap bitmap, ByteArrayOutputStream bitmapOutputStream) {
+
+        Log.v(LOG_TAG, "entering getTempImage()");
+
+        ByteArrayInputStream bis = null;
+        try {
+            bis = new ByteArrayInputStream(bitmapOutputStream.toByteArray());
+
+            String filename = UUID.randomUUID().toString() + ".jpeg";
+
+            File cacheDir = getContext().getCacheDir();
+            File outFile = new File(cacheDir, filename);
+            FileOutputStream fos = new FileOutputStream(outFile);
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = bis.read(buffer)) != -1) {
+                fos.write(buffer, 0, len);
+            }
+            fos.close();
+
+            return Uri.fromFile(outFile);
+
+        } catch (IOException ex) {
+
+            // something went terribly wrong
+            Log.e(LOG_TAG, "error writing temp file", ex);
+
+
+        } finally {
+            if (bis != null) {
+                try {
+                    bis.close();
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "inputStream could not be closed", e);
+                }
+            }
+        }
+        return null;
+    }
+
 }
