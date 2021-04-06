@@ -5,6 +5,12 @@
 
 import Foundation
 
+public struct PhotopickerOptions {
+    
+    var maxSize = 0
+    var quality = 0.9    
+}
+
 
 internal enum PhotopickerPropertyListKeys: String, CaseIterable {
 

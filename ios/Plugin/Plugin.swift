@@ -22,7 +22,7 @@ import Capacitor
 import os
 import PhotosUI
 
-
+// @see
 // https://developer.apple.com/forums/thread/652496
 // https://christianselig.com/2020/09/phpickerviewcontroller-efficiently/
 
@@ -31,9 +31,11 @@ import PhotosUI
 public class Photopicker: CAPPlugin {
     
     private var call: CAPPluginCall?
+    private var options = PhotopickerOptions()
     
-    // ⚡ ⛔ ✅ 📎 🐭 👎
-    
+    /**
+     * Checks whether the Info.plist file contains the necessary entries for the app permissions.
+     */
     private func checkUsageDescriptions() -> String? {
         if let dict = Bundle.main.infoDictionary {
             for key in PhotopickerPropertyListKeys.allCases where dict[key.rawValue] == nil {
@@ -46,7 +48,16 @@ public class Photopicker: CAPPlugin {
     @objc func getPhotos(_ call: CAPPluginCall) {
         
         CAPLog.print("🐭 ", self.pluginId!, "-", "entering getPhotos()")
+        
         self.call = call
+        self.options = photopickerOptions(from: call)
+        
+        if let invalidOptions = checkPhotopickerOptions() {
+            
+            CAPLog.print("⚡️ ", self.pluginId!, "-", invalidOptions)
+            call.reject(invalidOptions)
+            return
+        }
 
         if let missingUsageDescription = checkUsageDescriptions() {
             CAPLog.print("⚡️ ", self.pluginId!, "-", missingUsageDescription)
@@ -58,6 +69,33 @@ public class Photopicker: CAPPlugin {
         DispatchQueue.main.async {
             self._getPhotos(call)
         }
+    }
+    
+    private func photopickerOptions(from call: CAPPluginCall) -> PhotopickerOptions {
+        
+        CAPLog.print("🐭 ", self.pluginId!, "-", "entering photopickerOptions()")
+        
+        var result = PhotopickerOptions()
+        
+        result.maxSize = call.getInt("maxSize") ?? 0
+        result.quality = Double(call.getInt("quality") ?? 90) / 100.0
+        
+        return result
+    }
+    
+    private func checkPhotopickerOptions() -> String? {
+        
+        CAPLog.print("🐭 ", self.pluginId!, "-", "entering checkPhotopickerOptions()")
+
+        if options.maxSize < 0 || options.maxSize > 10_000 {
+            return "invalid value for parameter maxSize (0-10000)"
+        }
+        
+        if options.quality < 0.1 || options.quality > 1.0 {
+            return "invalid value for parameter quality (10-100)"
+        }
+        
+        return nil
     }
     
     func _getPhotos(_ call: CAPPluginCall) {
@@ -103,13 +141,6 @@ public class Photopicker: CAPPlugin {
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = self
         
-           // present
-/*           picker.modalPresentationStyle = settings.presentationStyle
-           if settings.presentationStyle == .popover {
-               picker.popoverPresentationController?.delegate = self
-               setCenteredPopover(picker)
-           }
-  */
         self.bridge.viewController.present(picker, animated: true)
     }
 }
@@ -174,7 +205,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                 let downsampleOptions = [
                     kCGImageSourceCreateThumbnailFromImageAlways: true,
                     kCGImageSourceCreateThumbnailWithTransform: true,
-                    kCGImageSourceThumbnailMaxPixelSize: 500, //2_000,
+                    kCGImageSourceThumbnailMaxPixelSize: self.options.maxSize
                 ] as CFDictionary
 
                 guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions) else {
@@ -183,8 +214,6 @@ extension Photopicker: PHPickerViewControllerDelegate {
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
                     return
                 }
-
-               // let data = NSMutableData()
                 
                 guard let imageDestination = CGImageDestinationCreateWithURL(fileURL as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
                     
@@ -194,20 +223,9 @@ extension Photopicker: PHPickerViewControllerDelegate {
                     
                     return
                 }
-                
-                /*guard let imageDestination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil) else {
-                    dispatchQueue.sync { totalConversionsCompleted += 1 }
-                    return
-                }*/
-                
-                // Don't compress PNGs, they're too pretty
-                let isPNG: Bool = {
-                    guard let utType = cgImage.utType else { return false }
-                    return (utType as String) == UTType.png.identifier
-                }()
 
                 let destinationProperties = [
-                    kCGImageDestinationLossyCompressionQuality: isPNG ? 1.0 : 0.50
+                    kCGImageDestinationLossyCompressionQuality: self.options.quality
                 ] as CFDictionary
 
                 CGImageDestinationAddImage(imageDestination, cgImage, destinationProperties)
@@ -226,9 +244,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                         
                         CAPLog.print("✅ ", self.pluginId!, "-", "done")
                         
-                        let urlArray = selectedImageDatas.filter {
-                            $0 != nil
-                        }.map {
+                        let urlArray = selectedImageDatas.map {
                             $0?.absoluteString
                         }
                         
