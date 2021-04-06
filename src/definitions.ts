@@ -10,7 +10,7 @@ export interface PhotopickerResponse {
 }
 
 export interface PhotopickerOptions {
-  maxSize?: number;
+  maxSize: number;
   quality: number;
 }
 

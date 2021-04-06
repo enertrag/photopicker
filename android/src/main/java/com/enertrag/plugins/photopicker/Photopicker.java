@@ -33,7 +33,6 @@ import com.getcapacitor.NativePlugin;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
-import com.getcapacitor.plugin.camera.ExifWrapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -64,6 +63,8 @@ public class Photopicker extends Plugin {
 
     private static final String LOG_TAG = "ENERTRAG/Photopicker";
 
+    private PhotopickerOptions options;
+
     /**
      * Implementation of the Plugin-API.
      * This method lets the user select one or more photos and returns their URIs
@@ -74,6 +75,11 @@ public class Photopicker extends Plugin {
     public void getPhotos(PluginCall call) {
 
         Log.v(LOG_TAG, "entering getPhotos()");
+
+        options = getOptions(call);
+        if(!checkOptions(call)) {
+            return;
+        }
 
         if(hasRequiredPermissions()) {
 
@@ -95,6 +101,52 @@ public class Photopicker extends Plugin {
 
         }
     }
+
+    /**
+     * Extracts the photopicker options from the capacitor call.
+     *
+     * @param call the Capacitor call data
+     * @return the photopicker call options
+     */
+    private PhotopickerOptions getOptions(PluginCall call) {
+
+        Log.v(LOG_TAG, "entering getOptions()");
+
+        PhotopickerOptions result = new PhotopickerOptions();
+
+        result.setMaxSize(call.getInt("maxSize", PhotopickerOptions.DEFAULT_MAX_SIZE));
+        result.setQuality(call.getInt("quality", PhotopickerOptions.DEFAULT_QUALITY));
+
+        return result;
+    }
+
+    /**
+     * Checks if all photopicker options are valid.
+     *
+     * @param call the Capacitor call data
+     * @return true if all options are valid, false otherwise
+     */
+    private boolean checkOptions(PluginCall call) {
+
+        Log.v(LOG_TAG, "entering checkOptions()");
+
+        if(options.getMaxSize() < 0 || options.getMaxSize() > 10000) {
+
+            Log.e(LOG_TAG, "invalid value for parameter maxSize (0-10000)");
+            call.reject("invalid value for parameter maxSize (0-10000)");
+            return false;
+        }
+
+        if(options.getQuality() < 1 || options.getQuality() > 100) {
+
+            Log.e(LOG_TAG, "invalid value for parameter quality (10-100)");
+            call.reject("invalid value for parameter quality (10-100)");
+            return false;
+        }
+
+        return true;
+    }
+
 
     /**
      * Opens the Android activity for selecting photos.
@@ -220,6 +272,12 @@ public class Photopicker extends Plugin {
         }
     }
 
+    /**
+     * Creates a temporary jepg image from the selected native mediapicker image uri.
+     *
+     * @param uri the selected image from the native mediapicker.
+     * @return a temporary uri for a new created jepg image
+     */
     private Uri getTempFile(Uri uri) {
 
         Log.v(LOG_TAG, "entering getTempFile()");
@@ -231,14 +289,20 @@ public class Photopicker extends Plugin {
             Bitmap bitmap = BitmapFactory.decodeStream(imageStream);
 
             if (bitmap == null) {
+
+                Log.e(LOG_TAG, "bitmap could not be decoded from stream");
                 return null;
+            }
+
+            if(options.getMaxSize() > 0) {
+                bitmap = resizeBitmapPreservingAspectRatio(bitmap, options.getMaxSize());
             }
 
             // Compress the final image and prepare for output to client
             ByteArrayOutputStream bitmapOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bitmapOutputStream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, options.getQuality(), bitmapOutputStream);
 
-            return getTempImage(bitmap, bitmapOutputStream);
+            return getTempImage(bitmapOutputStream);
 
         } catch (FileNotFoundException e) {
             Log.e(LOG_TAG, "file not found", e);
@@ -255,8 +319,13 @@ public class Photopicker extends Plugin {
         return null;
     }
 
-
-    private Uri getTempImage(Bitmap bitmap, ByteArrayOutputStream bitmapOutputStream) {
+    /**
+     * Persists bitmap data to a temporary file and returns the uri.
+     *
+     * @param bitmapOutputStream the bitmap data as an output stream
+     * @return the uri for the created jepg file
+     */
+    private Uri getTempImage(ByteArrayOutputStream bitmapOutputStream) {
 
         Log.v(LOG_TAG, "entering getTempImage()");
 
@@ -264,7 +333,7 @@ public class Photopicker extends Plugin {
         try {
             bis = new ByteArrayInputStream(bitmapOutputStream.toByteArray());
 
-            String filename = UUID.randomUUID().toString() + ".jpeg";
+            String filename = "py_temp_" + UUID.randomUUID().toString() + ".jpeg";
 
             File cacheDir = getContext().getCacheDir();
             File outFile = new File(cacheDir, filename);
@@ -280,7 +349,7 @@ public class Photopicker extends Plugin {
 
         } catch (IOException ex) {
 
-            // something went terribly wrong
+            // Something went terribly wrong
             Log.e(LOG_TAG, "error writing temp file", ex);
 
 
@@ -293,7 +362,46 @@ public class Photopicker extends Plugin {
                 }
             }
         }
+
         return null;
     }
+
+    /**
+     * Resize an image to the given max width or height.
+     * The maximum size always refers to the longer of the two sides.
+     *
+     * Resize will always preserve aspect ratio.
+     *
+     * @param bitmap the bitmap to resize
+     * @param maxSize the new maximum side length
+     * @return a new, scaled Bitmap
+     */
+    private static Bitmap resizeBitmapPreservingAspectRatio(Bitmap bitmap, final int maxSize) {
+
+        Log.v(LOG_TAG, "entering resizeBitmapPreservingAspectRatio()");
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        float newHeight;
+        float newWidth;
+
+        // resize with preserved aspect ratio
+        if(width > height) {
+            newWidth = Math.min(width, maxSize);
+            newHeight = (height * newWidth) / width;
+
+        } else {
+            newHeight = Math.min(height, maxSize);
+            newWidth = (width * newHeight) / height;
+        }
+
+        Log.i(LOG_TAG, "resizing bitmap from " + width + "x" + height + " to " + Math.round(newWidth)
+        + "x" + Math.round(newHeight));
+
+        return Bitmap.createScaledBitmap(bitmap, Math.round(newWidth), Math.round(newHeight), false);
+    }
+
+
 
 }

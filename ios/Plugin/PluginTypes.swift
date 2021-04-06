@@ -2,8 +2,6 @@
 //  PluginTypes.swift
 //  Plugin
 //
-//  Copyright © 2021 Philipp Anné
-//
 
 import Foundation
 
