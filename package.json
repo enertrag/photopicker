@@ -1,7 +1,7 @@
 {
   "name": "enertrag-photopicker",
-  "version": "1.0.0",
-  "description": "Multi-select photo picker",
+  "version": "1.0.1",
+  "description": "Multiple selection cross-platform image picker plugin for Capacitor",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -42,7 +42,14 @@
   "keywords": [
     "capacitor",
     "plugin",
-    "native"
+    "native",
+    "imagepicker",
+    "photopicker",
+    "mediapicker",
+    "multiple",
+    "ios",
+    "android",
+    "multiselect"
   ],
   "capacitor": {
     "ios": {
