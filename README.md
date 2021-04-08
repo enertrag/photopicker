@@ -1,5 +1,10 @@
 # Capacitor (Multi-) Photopicker Plugin
 
+[![version](https://img.shields.io/github/package-json/v/enertrag/photopicker)](https://github.com/enertrag/photopicker)
+[![npm](https://img.shields.io/npm/v/enertrag-photopicker.svg)](https://www.npmjs.com/package/enertrag-photopicker)
+[![issues](https://img.shields.io/github/issues/enertrag/photopicker)](https://github.com/enertrag/photopicker/issues)
+[![license](https://img.shields.io/github/license/enertrag/photopicker)](https://github.com/enertrag/photopicker/blob/main/LICENSE)
+
 The Photopicker API allows the user to select one or more photos from the system-wide media library.
 
 The selected photos can be (down)scaled and compressed. The data is provided in the form of temporary files in the user's cache directory. The API provides the URIs of the processed photos.
