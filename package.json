@@ -17,9 +17,9 @@
   "author": "Philipp Anné",
   "license": "MIT",
   "devDependencies": {
-    "@capacitor/android": "^2.4.7",
-    "@capacitor/core": "^2.4.7",
-    "@capacitor/ios": "^2.4.7",
+    "@capacitor/android": "^3.1.2",
+    "@capacitor/core": "^3.1.2",
+    "@capacitor/ios": "^3.1.2",
     "@ionic/prettier-config": "^1.0.0",
     "@ionic/swiftlint-config": "^1.0.0",
     "@rollup/plugin-node-resolve": "^8.1.0",

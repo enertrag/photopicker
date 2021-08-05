@@ -141,7 +141,7 @@ public class Photopicker: CAPPlugin {
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = self
         
-        self.bridge.viewController.present(picker, animated: true)
+        self.bridge?.viewController.present(picker, animated: true)
     }
 }
 
