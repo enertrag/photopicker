@@ -19,7 +19,6 @@
 package com.enertrag.plugins.photopicker;
 
 import android.Manifest;
-import android.app.Instrumentation;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -49,6 +48,8 @@ import java.util.UUID;
 
 import static android.app.Activity.RESULT_CANCELED;
 import static android.app.Activity.RESULT_OK;
+
+import androidx.activity.result.ActivityResult;
 
 @CapacitorPlugin(
         name = "Photopicker",
@@ -173,7 +174,7 @@ public class Photopicker extends Plugin {
     }
 
     @ActivityCallback
-    private void getPhotosResult(PluginCall call, Instrumentation.ActivityResult result) {
+    private void getPhotosResult(PluginCall call, ActivityResult result) {
         Log.v(LOG_TAG, "entering getPhotosResult()");
 
         JSObject res = new JSObject();
@@ -183,7 +184,7 @@ public class Photopicker extends Plugin {
 
         if(result.getResultCode() == RESULT_OK) {
 
-            Intent data = result.getResultData();
+            Intent data = result.getData();
 
             // Thanks to the internet for figuring this out :)
             if(data.getClipData() != null) {
