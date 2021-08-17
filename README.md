@@ -1,7 +1,7 @@
 # Capacitor (Multi-) Photopicker Plugin
 
 [![version](https://img.shields.io/github/package-json/v/enertrag/photopicker)](https://github.com/enertrag/photopicker)
-[![npm](https://img.shields.io/npm/v/enertrag-photopicker.svg)](https://www.npmjs.com/package/@enertrag/photopicker)
+[![npm](https://img.shields.io/npm/v/@enertrag/photopicker.svg)](https://www.npmjs.com/package/@enertrag/photopicker)
 [![issues](https://img.shields.io/github/issues/enertrag/photopicker)](https://github.com/enertrag/photopicker/issues)
 [![license](https://img.shields.io/github/license/enertrag/photopicker)](https://github.com/enertrag/photopicker/blob/main/LICENSE)
 
