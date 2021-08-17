@@ -14,7 +14,7 @@ In order to use the photos in a Capacitor application, they have to be moved fro
 ## Installation
 
 ```bash
-npm install enertrag-photopicker
+npm install @enertrag/photopicker
 ```
 
 _(Of course, the usual Capacitor procedure <code>npx cap sync</code> must be executed afterwards.)_
