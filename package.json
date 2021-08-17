@@ -1,6 +1,6 @@
 {
-  "name": "enertrag-photopicker",
-  "version": "1.1.0",
+  "name": "@enertrag/photopicker",
+  "version": "1.1.1",
   "description": "Multiple selection cross-platform image picker plugin for Capacitor",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
