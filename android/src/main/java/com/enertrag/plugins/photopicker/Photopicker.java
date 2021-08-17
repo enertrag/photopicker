@@ -20,7 +20,6 @@ package com.enertrag.plugins.photopicker;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -29,10 +28,14 @@ import android.util.Log;
 import com.getcapacitor.FileUtils;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
-import com.getcapacitor.NativePlugin;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,20 +49,16 @@ import java.util.UUID;
 import static android.app.Activity.RESULT_CANCELED;
 import static android.app.Activity.RESULT_OK;
 
-@NativePlugin(
-        requestCodes = {
-                Photopicker.REQUEST_IMAGE_PICK,
-                Photopicker.REQUEST_READ_WRITE_PERMISSION,
-        },
+import androidx.activity.result.ActivityResult;
+
+@CapacitorPlugin(
+        name = "Photopicker",
         permissions = {
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                @Permission(strings = { Manifest.permission.READ_EXTERNAL_STORAGE }, alias = "READ_EXTERNAL_STORAGE"),
+                @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }, alias = "WRITE_EXTERNAL_STORAGE")
         }
 )
 public class Photopicker extends Plugin {
-
-    protected static final int REQUEST_IMAGE_PICK = 1603;
-    protected static final int REQUEST_READ_WRITE_PERMISSION = 1604;
 
     private static final String LOG_TAG = "ENERTRAG/Photopicker";
 
@@ -81,25 +80,33 @@ public class Photopicker extends Plugin {
             return;
         }
 
-        if(hasRequiredPermissions()) {
+        if(allPermissionsGranted()) {
 
             _getPhotos(call);
 
         } else {
-
             Log.d(LOG_TAG, "requesting all permissions");
 
-            saveCall(call);
-
-            // Fix: we must not use pluginRequestAllPermissions() here, because it
-            //      won't call back the handleRequestPermissionResult() method.
-            //      Maybe I misunderstood the documentation.
-            pluginRequestPermissions(new String[] {
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            }, REQUEST_READ_WRITE_PERMISSION);
-
+            requestPermissionForAliases(
+                    new String[] {"READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"},
+                    call,
+                    "requestPermissionsCallback");
         }
+    }
+
+    @PermissionCallback
+    private void requestPermissionsCallback(PluginCall call) {
+        if (allPermissionsGranted()) {
+            _getPhotos(call);
+        } else {
+            Log.i(LOG_TAG, "user denied permission");
+            call.reject("User denied permission");
+        }
+    }
+
+    private boolean allPermissionsGranted(){
+        return getPermissionState("READ_EXTERNAL_STORAGE") == PermissionState.GRANTED &&
+               getPermissionState("WRITE_EXTERNAL_STORAGE") == PermissionState.GRANTED;
     }
 
     /**
@@ -157,120 +164,63 @@ public class Photopicker extends Plugin {
 
         Log.v(LOG_TAG, "entering _getPhotos()");
 
-        saveCall(call);
-
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         // This is the magic "extra" for selecting more than one photo
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
-        startActivityForResult(call, intent, REQUEST_IMAGE_PICK);
+        // startActivityForResult(call, intent, REQUEST_IMAGE_PICK);
+        startActivityForResult(call, intent, "getPhotosResult");
     }
 
-    /**
-     * Callback method that is executed after the user has answered the permission check.
-     *
-     * @param requestCode the code from the pluginRequestPermission(...) call
-     * @param permissions the requested permissions
-     * @param grantResults the user selection with regard to permissions
-     */
-    @Override
-    protected void handleRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    @ActivityCallback
+    private void getPhotosResult(PluginCall call, ActivityResult result) {
+        Log.v(LOG_TAG, "entering getPhotosResult()");
 
-        Log.v(LOG_TAG, "entering handleRequestPermissionsResult()");
-
-        super.handleRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        PluginCall savedCall = getSavedCall();
-
-        if(savedCall == null) {
-            Log.d(LOG_TAG, "saved call data not found");
-            return;
-        }
-
-        if(requestCode == REQUEST_READ_WRITE_PERMISSION) {
-
-            Log.d(LOG_TAG, "permission request was answered");
-
-            for (int result : grantResults) {
-                if (result == PackageManager.PERMISSION_DENIED) {
-
-                    Log.i(LOG_TAG, "user denied permission");
-
-                    savedCall.error("User denied permission");
-                    return;
-                }
-            }
-
-            _getPhotos(savedCall);
-        }
-    }
-
-    /**
-     * Callback method that is executed after the user has selected his photos
-     *
-     * @param requestCode the code from the startActivityForResult(...) call
-     * @param resultCode a code indicating whether the user has completed or cancelled the selection
-     * @param data the activity specific data (see below)
-     */
-    @Override
-    protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-
-        Log.v(LOG_TAG, "entering handleOnActivityResult()");
-
-        super.handleOnActivityResult(requestCode, resultCode, data);
-
-        PluginCall savedCall = getSavedCall();
-
-        if(savedCall == null) {
-            Log.d(LOG_TAG, "saved call data not found");
-            return;
-        }
-
-        JSObject result = new JSObject();
+        JSObject res = new JSObject();
 
         JSArray urls = new JSArray();
-        result.put("urls", urls);
+        res.put("urls", urls);
 
-        if(requestCode == REQUEST_IMAGE_PICK) {
+        if(result.getResultCode() == RESULT_OK) {
 
-            if(resultCode == RESULT_OK) {
+            Intent data = result.getData();
 
-                // Thanks to the internet for figuring this out :)
-                if(data.getClipData() != null) {
+            // Thanks to the internet for figuring this out :)
+            if(data.getClipData() != null) {
 
-                    Log.d(LOG_TAG, "user selected multiple photos");
+                Log.d(LOG_TAG, "user selected multiple photos");
 
-                    int count = data.getClipData().getItemCount();
-                    for(int i = 0; i < count; i++) {
-                        Uri imageUri = data.getClipData().getItemAt(i).getUri();
-                        imageUri = getTempFile(imageUri);
-
-                        urls.put(imageUri != null ? FileUtils.getFileUrlForUri(getContext(), imageUri) : null);                    }
-
-                } else if(data.getData() != null) {
-
-                    Log.d(LOG_TAG, "user selected single photo");
-
-                    Uri imageUri = data.getData();
+                int count = data.getClipData().getItemCount();
+                for(int i = 0; i < count; i++) {
+                    Uri imageUri = data.getClipData().getItemAt(i).getUri();
                     imageUri = getTempFile(imageUri);
 
-                    urls.put(imageUri != null ? FileUtils.getFileUrlForUri(getContext(), imageUri) : null);
-                }
+                    urls.put(imageUri != null ? FileUtils.getFileUrlForUri(getContext(), imageUri) : null);                    }
 
-                result.put("selected", true);
+            } else if(data.getData() != null) {
 
-                savedCall.resolve(result);
+                Log.d(LOG_TAG, "user selected single photo");
 
-            } else if(resultCode == RESULT_CANCELED) {
+                Uri imageUri = data.getData();
+                imageUri = getTempFile(imageUri);
 
-                Log.d(LOG_TAG, "user canceled selection");
-
-                result.put("selected", false);
-                savedCall.resolve(result);
+                urls.put(imageUri != null ? FileUtils.getFileUrlForUri(getContext(), imageUri) : null);
             }
+
+            res.put("selected", true);
+
+            call.resolve(res);
+
+        } else if(result.getResultCode() == RESULT_CANCELED) {
+
+            Log.d(LOG_TAG, "user canceled selection");
+
+            res.put("selected", false);
+            call.resolve(res);
         }
     }
+
 
     /**
      * Creates a temporary jepg image from the selected native mediapicker image uri.

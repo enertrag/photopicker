@@ -47,20 +47,20 @@ public class Photopicker: CAPPlugin {
     
     @objc func getPhotos(_ call: CAPPluginCall) {
         
-        CAPLog.print("🐭 ", self.pluginId!, "-", "entering getPhotos()")
+        CAPLog.print("🐭 ", self.pluginId, "-", "entering getPhotos()")
         
         self.call = call
         self.options = photopickerOptions(from: call)
         
         if let invalidOptions = checkPhotopickerOptions() {
             
-            CAPLog.print("⚡️ ", self.pluginId!, "-", invalidOptions)
+            CAPLog.print("⚡️ ", self.pluginId, "-", invalidOptions)
             call.reject(invalidOptions)
             return
         }
 
         if let missingUsageDescription = checkUsageDescriptions() {
-            CAPLog.print("⚡️ ", self.pluginId!, "-", missingUsageDescription)
+            CAPLog.print("⚡️ ", self.pluginId, "-", missingUsageDescription)
             call.reject(missingUsageDescription)
             bridge?.alert("Photopicker Error", "Missing required usage description. See console for more information")
             return
@@ -73,7 +73,7 @@ public class Photopicker: CAPPlugin {
     
     private func photopickerOptions(from call: CAPPluginCall) -> PhotopickerOptions {
         
-        CAPLog.print("🐭 ", self.pluginId!, "-", "entering photopickerOptions()")
+        CAPLog.print("🐭 ", self.pluginId, "-", "entering photopickerOptions()")
         
         var result = PhotopickerOptions()
         
@@ -85,7 +85,7 @@ public class Photopicker: CAPPlugin {
     
     private func checkPhotopickerOptions() -> String? {
         
-        CAPLog.print("🐭 ", self.pluginId!, "-", "entering checkPhotopickerOptions()")
+        CAPLog.print("🐭 ", self.pluginId, "-", "entering checkPhotopickerOptions()")
 
         if options.maxSize < 0 || options.maxSize > 10_000 {
             return "invalid value for parameter maxSize (0-10000)"
@@ -100,16 +100,16 @@ public class Photopicker: CAPPlugin {
     
     func _getPhotos(_ call: CAPPluginCall) {
         
-        CAPLog.print("🐭 ", self.pluginId!, "-", "entering _getPhotos()")
+        CAPLog.print("🐭 ", self.pluginId, "-", "entering _getPhotos()")
         
         let authStatus = PHPhotoLibrary.authorizationStatus()
         if authStatus == .restricted || authStatus == .denied {
-            CAPLog.print("⛔ ", self.pluginId!, "-", "user denied permission")
+            CAPLog.print("⛔ ", self.pluginId, "-", "user denied permission")
             self.call?.reject("User denied permission")
             return
         }
         
-        let id = self.pluginId!
+        let id = self.pluginId
         
         if authStatus == .authorized {
             
@@ -132,7 +132,7 @@ public class Photopicker: CAPPlugin {
     
     func openPicker() {
         
-        CAPLog.print("🐭 ", self.pluginId!, "-", "entering openPicker()")
+        CAPLog.print("🐭 ", self.pluginId, "-", "entering openPicker()")
         
         var config = PHPickerConfiguration()
         config.selectionLimit = 0
@@ -141,7 +141,7 @@ public class Photopicker: CAPPlugin {
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = self
         
-        self.bridge.viewController.present(picker, animated: true)
+        self.bridge?.viewController!.present(picker, animated: true)
     }
 }
 
@@ -149,12 +149,12 @@ public class Photopicker: CAPPlugin {
 extension Photopicker: PHPickerViewControllerDelegate {
     public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         
-        CAPLog.print("🐭 ", self.pluginId!, "-", "entering picker 19 (_,didFinishPicking)")
+        CAPLog.print("🐭 ", self.pluginId, "-", "entering picker 19 (_,didFinishPicking)")
         
         picker.dismiss(animated: true, completion: nil)
         guard let _ = results.first else {
             
-            CAPLog.print("👎 ", self.pluginId!, "-", "user cancelled selection")
+            CAPLog.print("👎 ", self.pluginId, "-", "user cancelled selection")
             self.call?.resolve([
                 "selected": false,
                 "urls": []
@@ -168,15 +168,15 @@ extension Photopicker: PHPickerViewControllerDelegate {
 
         for (index, result) in results.enumerated() {
             
-            CAPLog.print("🐭 ", self.pluginId!, "-", "entering enumeration")
+            CAPLog.print("🐭 ", self.pluginId, "-", "entering enumeration")
 
                         
             result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { (url, error) in
                 
-                CAPLog.print("🐭 ", self.pluginId!, "-", "entering loadFileRepresentation")
+                CAPLog.print("🐭 ", self.pluginId, "-", "entering loadFileRepresentation")
                 
                 guard let url = url else {
-                    CAPLog.print("⚡️ ", self.pluginId!, "-", "url guard failed")
+                    CAPLog.print("⚡️ ", self.pluginId, "-", "url guard failed")
 
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
                     return
@@ -184,7 +184,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                 
                 guard let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
                     
-                    CAPLog.print("⚡️ ", self.pluginId!, "-", "doc dir failed")
+                    CAPLog.print("⚡️ ", self.pluginId, "-", "doc dir failed")
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
                     
                     return
@@ -197,7 +197,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                 guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
                     
-                    CAPLog.print("⚡️ ", self.pluginId!, "-", "source guard failed")
+                    CAPLog.print("⚡️ ", self.pluginId, "-", "source guard failed")
                     
                     return
                 }
@@ -210,7 +210,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
 
                 guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions) else {
                     
-                    CAPLog.print("⚡️ ", self.pluginId!, "-", "cgimage guard failed")
+                    CAPLog.print("⚡️ ", self.pluginId, "-", "cgimage guard failed")
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
                     return
                 }
@@ -218,7 +218,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
                 guard let imageDestination = CGImageDestinationCreateWithURL(fileURL as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
                     
                     
-                    CAPLog.print("⚡️ ", self.pluginId!, "-", "imgDestination guard failed")
+                    CAPLog.print("⚡️ ", self.pluginId, "-", "imgDestination guard failed")
                     dispatchQueue.sync { totalConversionsCompleted += 1 }
                     
                     return
@@ -236,13 +236,13 @@ extension Photopicker: PHPickerViewControllerDelegate {
                     totalConversionsCompleted += 1
                 }
                 
-                CAPLog.print("📎 ", self.pluginId!, "-", "repeat")
+                CAPLog.print("📎 ", self.pluginId, "-", "repeat")
                 
                 dispatchQueue.sync {
                     
                     if(totalConversionsCompleted >= results.count) {
                         
-                        CAPLog.print("✅ ", self.pluginId!, "-", "done")
+                        CAPLog.print("✅ ", self.pluginId, "-", "done")
                         
                         let urlArray = selectedImageDatas.map {
                             $0?.absoluteString
@@ -257,7 +257,7 @@ extension Photopicker: PHPickerViewControllerDelegate {
             }
         }
         
-        CAPLog.print("✅ ", self.pluginId!, "-", "running")
+        CAPLog.print("✅ ", self.pluginId, "-", "running")
         
         return
     }

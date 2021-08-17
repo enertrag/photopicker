@@ -20,5 +20,5 @@ const Photopicker = new PhotopickerWeb();
 
 export { Photopicker };
 
-import { registerWebPlugin } from '@capacitor/core';
-registerWebPlugin(Photopicker);
+import { registerPlugin } from '@capacitor/core';
+registerPlugin(Photopicker);

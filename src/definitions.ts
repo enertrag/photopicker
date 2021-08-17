@@ -1,8 +1,3 @@
-declare module '@capacitor/core' {
-  interface PluginRegistry {
-    Photopicker: PhotopickerPlugin;
-  }
-}
 
 export interface PhotopickerResponse {
   selected: boolean;
